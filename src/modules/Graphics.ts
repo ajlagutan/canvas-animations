@@ -40,6 +40,18 @@ export abstract class Graphics {
     throw new TypeError("This is a static class.");
   }
   /**
+   * The total frame count.
+   * 
+   * 
+   * 
+   * @public
+   * @static
+   * @property
+   */
+  public static get frameCount(): number {
+    return Math.floor(this._frameCount);
+  }
+  /**
    * The graphic context's height.
    *
    *
@@ -200,8 +212,8 @@ export abstract class Graphics {
    * @method
    * @returns {void}
    */
-  public static update(): void {
-    this._frameCount++;
+  public static update(step: number): void {
+    this._frameCount = this._frameCount + 1 * step;
   }
   /**
    * Initializes the canvas component.
