@@ -233,7 +233,6 @@ export abstract class Keyboard {
       this.clear();
     }
     const keyName = KeyboardMapping[event.key];
-    console.log(keyName);
     if (keyName) {
       this._currentState[keyName] = true;
     }
