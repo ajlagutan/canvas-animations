@@ -1,5 +1,12 @@
+import "fpsmeter";
 import { debug } from "./Utils";
-
+/**
+ * A function delegate for rendering object to the canvas.
+ *
+ *
+ *
+ * @interface
+ */
 interface CanvasRenderFunction {
   (context: CanvasRenderingContext2D): void;
 }
@@ -15,6 +22,9 @@ interface CanvasRenderFunction {
 export abstract class Graphics {
   private static _canvas: HTMLCanvasElement;
   private static _context: CanvasRenderingContext2D;
+  private static _fpsmeter: FPSMeter;
+  private static _fpsmeterBox: HTMLElement;
+  private static _fpsmeterToggled: boolean = false;
   private static _frameCount: number = 0;
   private static _height: number = 0;
   private static _width: number = 0;
@@ -83,6 +93,7 @@ export abstract class Graphics {
       debug(this, "initializing...");
       this.initCanvas();
       this.setupEventHandlers();
+      this.initFpsmeter();
       this.resize();
       debug(this, "initialized.");
     } catch (error) {
@@ -127,6 +138,59 @@ export abstract class Graphics {
     this._canvas.style.height = this._height + "px";
   }
   /**
+   * Ticks the FPS meter component.
+   *
+   *
+   *
+   * @public
+   * @static
+   * @method
+   * @returns {void}
+   */
+  public static tickEnd(): void {
+    if (this._fpsmeterToggled && this._fpsmeter) {
+      this._fpsmeter.tick();
+    }
+  }
+  /**
+   * Ticks the FPS meter component.
+   *
+   *
+   *
+   * @public
+   * @static
+   * @method
+   * @returns {void}
+   */
+  public static tickStart(): void {
+    if (this._fpsmeterToggled && this._fpsmeter) {
+      this._fpsmeter.tickStart();
+    }
+  }
+  /**
+   * Toggles the FPS meter visibility.
+   *
+   *
+   *
+   * @public
+   * @static
+   * @method
+   * @param {boolean} visible The FPS meter visibility.
+   * @returns {void}
+   */
+  public static toggleFps(visible: boolean): void {
+    if (this._fpsmeter && this._fpsmeterBox) {
+      if (visible) {
+        this._fpsmeter.show();
+        this._fpsmeterBox.style.display = "block";
+      } else {
+        this._fpsmeter.hide();
+        this._fpsmeterBox.style.display = "none";
+      }
+      this._fpsmeterToggled = visible;
+    }
+  }
+  /**
    * Updates the graphic context.
    *
    *
@@ -160,6 +224,37 @@ export abstract class Graphics {
     document.body.appendChild(canvas);
     this._context = context;
     this._canvas = canvas;
+  }
+  /**
+   * Initializes the FPSMeter component.
+   *
+   *
+   *
+   * @private
+   * @static
+   * @method
+   * @returns {void}
+   */
+  private static initFpsmeter(): void {
+    let options: FPSMeterOptions = {
+      left: "20px",
+      graph: 1,
+      decimals: 1,
+      theme: "transparent",
+      toggleOn: undefined,
+    };
+    this._fpsmeterBox = document.createElement("div");
+    this._fpsmeterBox.id = "fpsmeter-box";
+    this._fpsmeterBox.style.backgroundColor = "rgb(255 255 255 / .1)";
+    this._fpsmeterBox.style.position = "absolute";
+    this._fpsmeterBox.style.top = "0";
+    this._fpsmeterBox.style.left = "15px";
+    this._fpsmeterBox.style.width = "129px";
+    this._fpsmeterBox.style.height = "50px";
+    this._fpsmeterBox.style.zIndex = "9";
+    this._fpsmeter = new FPSMeter(document.body, options);
+    document.body.appendChild(this._fpsmeterBox);
+    this.toggleFps(false);
   }
   /**
    * Handles the window's resize event.
