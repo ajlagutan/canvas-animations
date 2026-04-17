@@ -73,6 +73,16 @@ export abstract class Game {
     // Graphics module
     Graphics.init();
   }
+  /**
+   * Initializes the GUI components.
+   *
+   *
+   *
+   * @private
+   * @static
+   * @method
+   * @returns {void}
+   */
   private static initGui(): void {
     this._gui = new lil.GUI({ title: "control panel" });
     this._gui.add(this._options, "fps").onFinishChange(Graphics.toggleFps.bind(Graphics)).name("show fps");
