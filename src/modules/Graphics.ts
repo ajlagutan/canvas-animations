@@ -1,15 +1,6 @@
 import "fpsmeter";
+import { Scene } from "./Scene";
 import { debug } from "./Utils";
-/**
- * A function delegate for rendering object to the canvas.
- *
- *
- *
- * @interface
- */
-interface CanvasRenderFunction {
-  (context: CanvasRenderingContext2D): void;
-}
 /**
  * A class that handles graphic functions.
  *
@@ -41,9 +32,9 @@ export abstract class Graphics {
   }
   /**
    * The total frame count.
-   * 
-   * 
-   * 
+   *
+   *
+   *
    * @public
    * @static
    * @property
@@ -120,13 +111,12 @@ export abstract class Graphics {
    * @public
    * @static
    * @method
-   * @param {any} obj The object to render.
+   * @param {Scene | null} scene The object to render.
    * @returns {void}
    */
-  public static render(obj: any): void {
-    if (obj && typeof obj["render"] === "function") {
-      const render: CanvasRenderFunction = obj["render"];
-      render.call(obj, this._context);
+  public static render(scene: Scene | null): void {
+    if (scene) {
+      scene.render(this._context);
     }
   }
   /**
