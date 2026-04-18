@@ -13,7 +13,7 @@ export function debug(category: any, ...data: any[]): void {
     return;
   }
   if (typeof category === "object" && category["constructor"]) {
-    debug(category["constructor"]);
+    debug(category["constructor"], ...data);
     return;
   }
   console.debug(...data);
