@@ -2,6 +2,7 @@ import * as lil from "lil-gui";
 import { Graphics } from "./Graphics";
 import { Keyboard } from "./Keyboard";
 import { Mouse } from "./Mouse";
+import { Scene, type SceneConstructor } from "./Scene";
 import { debug } from "./Utils";
 type GameOptions = { fps: boolean };
 /**
@@ -21,7 +22,9 @@ export abstract class Game {
   private static _gui: lil.GUI;
   private static _lastUpdateTime: number = 0;
   private static _options: GameOptions = { fps: false };
-  private static _scene: any;
+  private static _nextScene: Scene | null;
+  private static _scene: Scene | null;
+  private static _sceneStarted: boolean = false;
   private static _step: number = 1 / this._fps;
   private static _stopped: boolean;
   /**
@@ -45,15 +48,86 @@ export abstract class Game {
    * @method
    * @returns {void}
    */
-  public static run(): void {
+  public static run(): void;
+  /**
+   * Starts the game loop with an initial scene.
+   *
+   *
+   *
+   * @public
+   * @static
+   * @method
+   * @param {Scene} scene The starting scene.
+   * @returns {void}
+   */
+  public static run(scene: Scene): void;
+  /**
+   * Starts the game loop with an initial scene.
+   *
+   *
+   *
+   * @public
+   * @static
+   * @method
+   * @param {SceneConstructor} scene The scene constructor of the starting scene.
+   * @returns {void}
+   */
+  public static run(scene: SceneConstructor): void;
+  public static run(scene?: Scene | SceneConstructor | null): void {
     try {
       debug(this, "starting...");
       this.init();
       this.initGui();
+      this.goto(scene);
       this.requestUpdate();
       debug(this, "started.");
     } catch (error) {
       console.error(error);
+    }
+  }
+  /**
+   * Changes the scene rendered.
+   *
+   *
+   *
+   * @private
+   * @static
+   * @method
+   * @returns {void}
+   */
+  private static changeScene(): void {
+    if (this.isSceneChanging() && !this.isCurrentSceneBusy()) {
+      if (this._scene) {
+        this._scene.terminate();
+      }
+      this._scene = this._nextScene;
+      if (this._scene) {
+        this._scene.create();
+        this._nextScene = null;
+        this._sceneStarted = false;
+      }
+    }
+  }
+  /**
+   * Commands the game to render the specified scene object.
+   *
+   *
+   *
+   * @private
+   * @static
+   * @method
+   * @param {Scene | SceneConstructor | null} scene The scene object to be rendered.
+   * @returns {void}
+   */
+  private static goto(scene?: Scene | SceneConstructor | null): void {
+    if (scene instanceof Scene) {
+      this._nextScene = scene;
+    } else if (typeof scene === "function") {
+      const ctor: SceneConstructor = scene;
+      this._nextScene = new ctor();
+    }
+    if (this._scene) {
+      this._scene.stop();
     }
   }
   /**
@@ -88,6 +162,36 @@ export abstract class Game {
     this._gui.add(this._options, "fps").onFinishChange(Graphics.toggleFps.bind(Graphics)).name("show fps");
     this._gui.onFinishChange(this.saveOptions);
     this.loadOptions(this._gui);
+  }
+  /**
+   * Checks whether the current scene is busy.
+   *
+   *
+   *
+   * @returns {boolean} true, if the current scene is busy; otherwise, false.
+   */
+  private static isCurrentSceneBusy(): boolean {
+    return !!this._scene && this._scene.isBusy();
+  }
+  /**
+   * Checks whether the current scene has started.
+   *
+   *
+   *
+   * @returns {boolean} true, if the current scene has started; otherwise, false.
+   */
+  private static isCurrentSceneStarted(): boolean {
+    return !!this._scene && this._sceneStarted;
+  }
+  /**
+   * Checks whether the scene is changing.
+   *
+   *
+   *
+   * @returns {boolean} true, if the scene is changing; otherwise, false.
+   */
+  private static isSceneChanging(): boolean {
+    return !!this._nextScene;
   }
   /**
    * Loads the options from the browser's {@link localStorage} module.
@@ -127,6 +231,7 @@ export abstract class Game {
       while (this._accumulator >= this._step) {
         this.updateInput();
         this.updateGraphics();
+        this.changeScene();
         this.updateScene();
         this._accumulator -= this._step;
       }
@@ -284,9 +389,14 @@ export abstract class Game {
    * @returns {void}
    */
   private static updateScene(): void {
-    if (this._scene && typeof this._scene["update"] === "function") {
-      const update: Function = this._scene["update"];
-      update.call(this._scene, this._step);
+    if (this._scene) {
+      if (!this._sceneStarted && this._scene.isReady()) {
+        this._scene.start();
+        this._sceneStarted = true;
+      }
+      if (this.isCurrentSceneStarted()) {
+        this._scene.update(this._step);
+      }
     }
   }
 }
