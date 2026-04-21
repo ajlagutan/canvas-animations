@@ -28,7 +28,8 @@ export class Scene_Test extends Scene {
     this._cellWidth = this.width / COLS;
     this._cellHeight = this.height / ROWS;
   }
-  override render(context: CanvasRenderingContext2D): void {
+  override draw(context: OffscreenCanvasRenderingContext2D): void {
+    context.clearRect(0, 0, this.width, this.height);
     context.save();
     for (let y = 0; y < this._cells.length; y++) {
       for (let x = 0; x < this._cells[y].length; x++) {
@@ -42,6 +43,7 @@ export class Scene_Test extends Scene {
     context.restore();
   }
   override resize(): void {
+    super.resize();
     this._cellWidth = this.width / COLS;
     this._cellHeight = this.height / ROWS;
   }

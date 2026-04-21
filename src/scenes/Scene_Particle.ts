@@ -6,7 +6,6 @@ type Particle = Point2 & { velocity: Point2; size: number; hue: number };
 export class Scene_Particle extends Scene {
   private _particles: Array<Particle> = new Array(1000);
   override create(): void {
-    console.log("hello, world");
     for (let i = 0; i < this._particles.length; i++) {
       let speed: number = randomInt(50, 501);
       let speedAngle: number = (randomInt(0, 361) * Math.PI) / 180;
@@ -26,8 +25,8 @@ export class Scene_Particle extends Scene {
       };
     }
   }
-  public render(context: CanvasRenderingContext2D): void {
-    super.render(context);
+  override draw(context: OffscreenCanvasRenderingContext2D): void {
+    context.clearRect(0, 0, this.width, this.height);
     context.save();
     for (let p of this._particles) {
       context.beginPath();
