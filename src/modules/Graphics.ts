@@ -31,6 +31,12 @@ export abstract class Graphics {
     throw new TypeError("This is a static class.");
   }
   /**
+   *
+   */
+  public static get context(): CanvasRenderingContext2D {
+    return this._context;
+  }
+  /**
    * The total frame count.
    *
    *
