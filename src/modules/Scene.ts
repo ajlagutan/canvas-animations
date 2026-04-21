@@ -21,6 +21,25 @@ export interface SceneConstructor {
  * @class
  */
 export abstract class Scene {
+  private readonly _offscreenCanvas: OffscreenCanvas;
+  private readonly _offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
+  /**
+   * Creates a new instance of {@link Scene} object.
+   *
+   *
+   *
+   * @public
+   * @constructor
+   */
+  public constructor() {
+    let canvas = new OffscreenCanvas(this.width, this.height);
+    let context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("The OffscreenCanvasRenderingContext2D object is not supported.");
+    }
+    this._offscreenCanvas = canvas;
+    this._offscreenCanvasContext = context;
+  }
   /**
    * Gets the current height of the graphics context.
    *
@@ -94,7 +113,8 @@ export abstract class Scene {
    * @returns {void}
    */
   public render(context: CanvasRenderingContext2D): void {
-    context.clearRect(0, 0, this.width, this.height);
+    this.draw(this._offscreenCanvasContext);
+    context.drawImage(this._offscreenCanvas, 0, 0, this.width, this.height);
   }
   /**
    * Resizes the scene.
@@ -105,7 +125,10 @@ export abstract class Scene {
    * @method
    * @returns {void}
    */
-  public resize(): void {}
+  public resize(): void {
+    this._offscreenCanvas.width = this.width;
+    this._offscreenCanvas.height = this.height;
+  }
   /**
    * Starts the scene process.
    *
@@ -153,4 +176,16 @@ export abstract class Scene {
    */
   // @ts-ignore: TS6133 - parameter is unused in base class.
   public update(step: number): void {}
+  /**
+   * Draws on the offscreen canvas of the scene.
+   *
+   *
+   *
+   * @protected
+   * @method
+   * @param {OffscreenCanvasRenderingContext2D} context The offscreen canvas of the scene.
+   * @returns {void}
+   */
+  // @ts-ignore: TS6133 - parameter is unused in base class.
+  protected draw(context: OffscreenCanvasRenderingContext2D): void {}
 }
