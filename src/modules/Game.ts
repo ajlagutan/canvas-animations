@@ -3,8 +3,34 @@ import { Graphics } from "./Graphics";
 import { Keyboard } from "./Keyboard";
 import { Mouse } from "./Mouse";
 import { Scene, type SceneConstructor } from "./Scene";
+import { createSceneManager, type SceneManagerFn as SceneManagerInitFn, type SceneManagerInit } from "./SceneManager";
 import { debug } from "./Utils";
-type GameOptions = { fps: boolean };
+/**
+ * Game options type.
+ *
+ *
+ *
+ * @private
+ * @type
+ */
+type GameOptions = {
+  /**
+   * Gets or sets whether the FPS component is visible on the screen.
+   *
+   *
+   *
+   * @property
+   */
+  fps: boolean;
+  /**
+   * Gets or sets the current active scene to be rendered.
+   *
+   *
+   *
+   * @property
+   */
+  scene: string;
+};
 /**
  * A class that handles the main game loop.
  *
@@ -21,9 +47,11 @@ export abstract class Game {
   private static _fps: number = 60;
   private static _gui: lil.GUI;
   private static _lastUpdateTime: number = 0;
-  private static _options: GameOptions = { fps: false };
+  private static _manager: SceneManagerInit | null;
   private static _nextScene: Scene | null;
+  private static _options: GameOptions = { fps: false, scene: "" };
   private static _scene: Scene | null;
+  private static _sceneSelector: lil.Controller | null;
   private static _sceneStarted: boolean = false;
   private static _step: number = 1 / this._fps;
   private static _stopped: boolean;
@@ -48,7 +76,18 @@ export abstract class Game {
    * @method
    * @returns {void}
    */
-  public static run(): void;
+  public static run(fn: SceneManagerInitFn): void {
+    try {
+      debug(this, "starting...");
+      this.init();
+      this.initManager(fn);
+      this.initGui();
+      this.requestUpdate();
+      debug(this, "started.");
+    } catch (error) {
+      console.error(error);
+    }
+  }
   /**
    * Starts the game loop with an initial scene.
    *
@@ -57,10 +96,10 @@ export abstract class Game {
    * @public
    * @static
    * @method
-   * @param {Scene} scene The starting scene.
+   * @param {Scene | null} scene The starting scene.
    * @returns {void}
    */
-  public static run(scene: Scene): void;
+  public static runScene(scene: Scene | null): void;
   /**
    * Starts the game loop with an initial scene.
    *
@@ -69,11 +108,11 @@ export abstract class Game {
    * @public
    * @static
    * @method
-   * @param {SceneConstructor} scene The scene constructor of the starting scene.
+   * @param {SceneConstructor | null} scene The scene constructor of the starting scene.
    * @returns {void}
    */
-  public static run(scene: SceneConstructor): void;
-  public static run(scene?: Scene | SceneConstructor | null): void {
+  public static runScene(scene: SceneConstructor | null): void;
+  public static runScene(scene: Scene | SceneConstructor | null): void {
     try {
       debug(this, "starting...");
       this.init();
@@ -116,15 +155,26 @@ export abstract class Game {
    * @private
    * @static
    * @method
-   * @param {Scene | SceneConstructor | null} scene The scene object to be rendered.
+   * @param {string | Scene | SceneConstructor | null} scene The scene object to be rendered.
    * @returns {void}
    */
-  private static goto(scene?: Scene | SceneConstructor | null): void {
+  private static goto(scene: string | Scene | SceneConstructor | null): void {
     if (scene instanceof Scene) {
       this._nextScene = scene;
+    } else if (typeof scene === "string" && scene !== "") {
+      if (this._manager) {
+        this._nextScene = this._manager.get(scene);
+      }
     } else if (typeof scene === "function") {
       const ctor: SceneConstructor = scene;
-      this._nextScene = new ctor();
+      const nextScene: Scene = new ctor();
+      this._nextScene = nextScene;
+    } else {
+      if (this._manager) {
+        let scenes: string[] = Object.values(this._manager.scenes);
+        let first: string | null = scenes.length > 0 ? scenes[0] : null;
+        this._nextScene = this._manager.get(first);
+      }
     }
     if (this._scene) {
       this._scene.stop();
@@ -146,6 +196,8 @@ export abstract class Game {
     Mouse.init();
     // Graphics module
     Graphics.init();
+    // Setup event handlers
+    this.setupEventHandlers();
   }
   /**
    * Initializes the GUI components.
@@ -159,9 +211,43 @@ export abstract class Game {
    */
   private static initGui(): void {
     this._gui = new lil.GUI({ title: "control panel" });
-    this._gui.add(this._options, "fps").onFinishChange(Graphics.toggleFps.bind(Graphics)).name("show fps");
-    this._gui.onFinishChange(this.saveOptions);
+
+    let fps = this._gui.add(this._options, "fps");
+    fps.onChange(Graphics.toggleFps.bind(Graphics));
+    fps.name("show fps");
+
+    this._sceneSelector = this._gui.add(this._options, "scene", this._manager?.scenes);
+    this._sceneSelector.onChange(this.goto.bind(this));
+    this._sceneSelector.name("scene");
+    this._sceneSelector.show(!!this._manager);
+
     this.loadOptions(this._gui);
+
+    if (this._options.scene === "") {
+      let scenes: string[] = Object.values(this._manager?.scenes ?? {});
+      let first: string | null = scenes.length > 0 ? scenes[0] : null;
+      this._sceneSelector.setValue(first);
+    }
+
+    this._gui.onFinishChange(this.saveOptions);
+  }
+  /**
+   * Initializes the {@link SceneManagerInit} component.
+   *
+   *
+   *
+   * @private
+   * @static
+   * @method
+   * @param {SceneManagerInitFn} fn A function to configure the initialized {@link SceneManagerInit} component.
+   * @returns {void}
+   */
+  private static initManager(fn: SceneManagerInitFn): void {
+    this._manager = createSceneManager();
+    if (fn) {
+      fn.call(this._manager, this._manager);
+    }
+    this._manager.finalize();
   }
   /**
    * Checks whether the current scene is busy.
@@ -241,6 +327,21 @@ export abstract class Game {
       this.requestUpdate();
     } catch (error) {
       console.error(error);
+    }
+  }
+  /**
+   * Handles the window's resize event.
+   *
+   *
+   *
+   * @private
+   * @static
+   * @method
+   * @returns {void}
+   */
+  private static onResize(): void {
+    if (this._scene) {
+      this._scene.resize();
     }
   }
   /**
@@ -324,6 +425,19 @@ export abstract class Game {
    */
   private static setLastUpdateTime(time: number): void {
     this._lastUpdateTime = time;
+  }
+  /**
+   * Configures the event listeners.
+   *
+   *
+   *
+   * @private
+   * @static
+   * @method
+   * @returns {void}
+   */
+  private static setupEventHandlers(): void {
+    window.addEventListener("resize", this.onResize.bind(this));
   }
   /**
    * Calls the {@link Graphics.tickEnd}() method.
