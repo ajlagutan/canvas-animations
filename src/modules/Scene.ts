@@ -27,6 +27,7 @@ export abstract class Scene {
    *
    *
    * @public
+   * @readonly
    * @property
    * @returns {number} The current height of the graphics context.
    */
@@ -39,6 +40,7 @@ export abstract class Scene {
    *
    *
    * @public
+   * @readonly
    * @property
    * @returns {number} The current width of the graphics context.
    */
@@ -91,8 +93,19 @@ export abstract class Scene {
    * @param {CanvasRenderingContext2D} context The graphics context.
    * @returns {void}
    */
-  // @ts-ignore: TS6133 - parameter is unused in base class.
-  public render(context: CanvasRenderingContext2D): void {}
+  public render(context: CanvasRenderingContext2D): void {
+    context.clearRect(0, 0, this.width, this.height);
+  }
+  /**
+   * Resizes the scene.
+   *
+   *
+   *
+   * @public
+   * @method
+   * @returns {void}
+   */
+  public resize(): void {}
   /**
    * Starts the scene process.
    *
