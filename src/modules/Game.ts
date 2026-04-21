@@ -44,8 +44,12 @@ type GameOptions = {
  */
 export abstract class Game {
   private static _accumulator: number = 0;
+  private static _fadeDuration: number = 0;
+  private static _nextSceneOpacity: number = 0;
+  private static _lastSceneOpacity: number = 1;
   private static _fps: number = 60;
   private static _gui: lil.GUI;
+  private static _lastScene: Scene | null;
   private static _lastUpdateTime: number = 0;
   private static _manager: SceneManagerInit | null;
   private static _nextScene: Scene | null;
@@ -138,6 +142,8 @@ export abstract class Game {
     if (this.isSceneChanging() && !this.isCurrentSceneBusy()) {
       if (this._scene) {
         this._scene.terminate();
+        this._lastScene = this._scene;
+        this.startSceneTransition(15);
       }
       this._scene = this._nextScene;
       if (this._scene) {
@@ -319,6 +325,7 @@ export abstract class Game {
         this.updateGraphics();
         this.changeScene();
         this.updateScene();
+        this.updateFade();
         this._accumulator -= this._step;
       }
       this.renderScene();
@@ -355,8 +362,22 @@ export abstract class Game {
    * @returns {void}
    */
   private static renderScene(): void {
-    if (this._scene) {
-      Graphics.render(this._scene);
+    Graphics.clear();
+    if (this._fadeDuration > 0) {
+      Graphics.context.save();
+      if (this._lastScene) {
+        Graphics.context.globalAlpha = this._lastSceneOpacity;
+        Graphics.render(this._lastScene);
+      }
+      if (this._scene) {
+        Graphics.context.globalAlpha = this._nextSceneOpacity;
+        Graphics.render(this._scene);
+      }
+      Graphics.context.restore();
+    } else {
+      if (this._scene) {
+        Graphics.render(this._scene);
+      }
     }
   }
   /**
@@ -440,6 +461,22 @@ export abstract class Game {
     window.addEventListener("resize", this.onResize.bind(this));
   }
   /**
+   * Starts the scene transition.
+   *
+   *
+   *
+   * @private
+   * @static
+   * @method
+   * @param {number} duration The duration (in frames) of the transition.
+   * @returns {void}
+   */
+  private static startSceneTransition(duration: number): void {
+    this._fadeDuration = duration;
+    this._lastSceneOpacity = 1;
+    this._nextSceneOpacity = 0;
+  }
+  /**
    * Calls the {@link Graphics.tickEnd}() method.
    *
    *
@@ -464,6 +501,24 @@ export abstract class Game {
    */
   private static tickStart(): void {
     Graphics.tickStart();
+  }
+  /**
+   * Updates the fade transition.
+   *
+   *
+   *
+   * @private
+   * @static
+   * @method
+   * @returns {void}
+   */
+  private static updateFade(): void {
+    if (this._fadeDuration > 0) {
+      let duration = this._fadeDuration;
+      this._lastSceneOpacity -= this._lastSceneOpacity / duration;
+      this._nextSceneOpacity += (1 - this._nextSceneOpacity) / duration;
+      this._fadeDuration--;
+    }
   }
   /**
    * Updates the graphics context.
