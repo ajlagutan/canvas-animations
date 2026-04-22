@@ -71,6 +71,20 @@ export abstract class Game {
     throw new TypeError("This is a static class.");
   }
   /**
+   * Gets the current FPS of the game.
+   * 
+   * 
+   * 
+   * @public
+   * @static
+   * @readonly
+   * @property
+   * @returns {number} The current FPS of the game.
+   */
+  public static get fps(): number {
+    return this._fps;
+  }
+  /**
    * Starts the game loop.
    *
    *
