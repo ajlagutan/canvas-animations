@@ -1,3 +1,5 @@
+export * as "lil" from "lil-gui";
+
 export * from "./modules/Game";
 export * from "./modules/Graphics";
 export * from "./modules/Keyboard";
