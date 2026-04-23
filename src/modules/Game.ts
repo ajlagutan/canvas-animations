@@ -72,9 +72,9 @@ export abstract class Game {
   }
   /**
    * Gets the current FPS of the game.
-   * 
-   * 
-   * 
+   *
+   *
+   *
    * @public
    * @static
    * @readonly

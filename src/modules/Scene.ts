@@ -169,6 +169,7 @@ export abstract class Scene {
    * Updates the scene by a fixed rate.
    *
    *
+   *
    * @public
    * @method
    * @param {number} step The fixed rate value.
