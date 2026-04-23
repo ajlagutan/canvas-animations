@@ -19,6 +19,43 @@ export function debug(category: any, ...data: any[]): void {
   console.debug(...data);
 }
 /**
+ * Flattens the root object.
+ *
+ *
+ *
+ * @global
+ * @method
+ * @param {any} root The root object.
+ * @param {any} path The path.
+ * @returns {any} A flatten object of the {@link root} object.
+ */
+export function flatten(root: any, path: any): any {
+  let result: any = {};
+  if (root) {
+    for (let [name, value] of Object.entries<any>(root)) {
+      const key = flattenKey(path, name).replace("_", "");
+      result =
+        typeof value === "object" && !(value instanceof Array) && !name.startsWith("_")
+          ? Object.assign({}, result, flatten(root[name], key))
+          : Object.assign({}, result, { [key]: value });
+    }
+  }
+  return result;
+}
+/**
+ * Flattens an array of objects.
+ *
+ *
+ *
+ * @global
+ * @method
+ * @param {any[]} data An array of objects.
+ * @returns {string} A flatten string key.
+ */
+export function flattenKey(...data: any[]): string {
+  return [...data].filter((x: any) => !!x).join(".");
+}
+/**
  * Returns a random integer between min and max (exclusive).
  *
  *
