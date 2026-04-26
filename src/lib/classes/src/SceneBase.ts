@@ -1,6 +1,6 @@
 import { Graphics } from "@lib/modules";
 
-export abstract class SceneBase implements SceneObject {
+export class SceneBase implements SceneObject {
   /**
    * Gets the scene height.
    *
@@ -13,6 +13,19 @@ export abstract class SceneBase implements SceneObject {
    */
   public get height(): number {
     return Graphics.height;
+  }
+  /**
+   * Gets the scene options.
+   *
+   *
+   *
+   * @public
+   * @readonly
+   * @property
+   * @returns {any} The scene options.
+   */
+  public get options(): any {
+    return undefined;
   }
   /**
    * Gets the scene width.
