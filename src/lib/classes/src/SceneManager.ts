@@ -114,6 +114,18 @@ class SceneObjectManager implements SceneObjectManagerInterface<typeof SceneBase
     }
   }
   /**
+   * Returns the first scene from the registered scene list.
+   *
+   *
+   *
+   * @private
+   * @method
+   * @returns {string | undefined} The first scene's unique identifier, if found; otherwise, **`undefined`**.
+   */
+  private firstScene(): string | undefined {
+    return Object.values(this._scenes).at(0);
+  }
+  /**
    * Tells the game to render a specific scene object or constructor.
    *
    *
@@ -141,7 +153,12 @@ class SceneObjectManager implements SceneObjectManagerInterface<typeof SceneBase
     if (this._sceneController) {
       const json = localStorage.getItem(CURRENT_SCENE_STORAGE);
       const data = JSON.parse(json ?? "{}");
-      this._sceneController.load(data["id"]);
+      if (typeof data["id"] === "string" && data["id"] !== "") {
+        this._sceneController.load(data["id"]);
+      } else {
+        const firstScene = this.firstScene();
+        this._sceneController.setValue(firstScene);
+      }
     }
   }
   /**
