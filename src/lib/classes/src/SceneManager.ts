@@ -1,7 +1,7 @@
 import * as lil from "lil-gui";
-import { SceneBase } from "@lib/classes";
-import { logger } from "@lib/utils";
+import { SceneBase, SceneController } from "@lib/classes";
 import { Game, Graphics } from "@lib/modules";
+import { logger } from "@lib/utils";
 /**
  * A key for the current scene in the local storage.
  *
@@ -11,13 +11,21 @@ import { Game, Graphics } from "@lib/modules";
  */
 const CURRENT_SCENE_STORAGE = "/control-panel:scene";
 /**
- * A type constant for {@link SceneObjectRegistration}.
+ * A type for scene manager options.
  *
  *
  *
  * @type
  */
-type SceneRegistration = SceneObjectRegistration<typeof SceneBase>;
+type SceneManagerOptions = { fps: boolean; scene: string };
+/**
+ * A type constant for {@link SceneRegistration}.
+ *
+ *
+ *
+ * @type
+ */
+type SceneRegistration = { scene: typeof SceneBase; id?: string; title?: string };
 /**
  * Sorts the scene registrations alphabetical order.
  *
@@ -41,10 +49,10 @@ function sortRegistrations(a: SceneRegistration, b: SceneRegistration): number {
  */
 class SceneObjectManager implements SceneObjectManagerInterface<typeof SceneBase> {
   private _gui?: lil.GUI;
-  private _options: SceneObjectManagerOptions;
-  private _sceneController?: lil.Controller;
-  private _sceneMap: Map<string, typeof SceneBase | SceneBase>;
+  private _options: SceneManagerOptions;
   private _scenes: { [key: string]: string };
+  private _scenesController?: lil.Controller;
+  private _scenesMap: Map<string, typeof SceneBase | SceneBase>;
   /**
    * Creates a new {@link SceneObjectManager} object instance.
    *
@@ -55,7 +63,7 @@ class SceneObjectManager implements SceneObjectManagerInterface<typeof SceneBase
    */
   private constructor() {
     this._options = { fps: false, scene: "" };
-    this._sceneMap = new Map();
+    this._scenesMap = new Map();
     this._scenes = {};
   }
   /**
@@ -132,11 +140,16 @@ class SceneObjectManager implements SceneObjectManagerInterface<typeof SceneBase
    *
    * @private
    * @method
-   * @param {SceneObject | SceneObjectConstructor} scene A scene object or constructor to render.
+   * @param {typeof SceneBase | SceneBase} scene A scene object or constructor to render.
    * @returns {void}
    */
-  private goto(scene: SceneObject | SceneObjectConstructor): void {
-    if (scene) {
+  private goto(scene: typeof SceneBase | SceneBase): void {
+    if (typeof scene === "function") {
+      const ctor: SceneObjectConstructor = scene;
+      const nextScene = new ctor();
+      this.goto(nextScene);
+    }
+    if (typeof scene === "object" && scene instanceof SceneBase) {
       Game.goto(scene);
     }
   }
@@ -150,14 +163,14 @@ class SceneObjectManager implements SceneObjectManagerInterface<typeof SceneBase
    * @returns {void}
    */
   private loadScene(): void {
-    if (this._sceneController) {
+    if (this._scenesController) {
       const json = localStorage.getItem(CURRENT_SCENE_STORAGE);
       const data = JSON.parse(json ?? "{}");
       if (typeof data["id"] === "string" && data["id"] !== "") {
-        this._sceneController.load(data["id"]);
+        this._scenesController.load(data["id"]);
       } else {
         const firstScene = this.firstScene();
-        this._sceneController.setValue(firstScene);
+        this._scenesController.setValue(firstScene);
       }
     }
   }
@@ -172,14 +185,15 @@ class SceneObjectManager implements SceneObjectManagerInterface<typeof SceneBase
    * @returns {void}
    */
   private onSceneChange(id: string): void {
-    if (this._sceneMap.has(id)) {
-      let value: typeof SceneBase | SceneBase | undefined = this._sceneMap.get(id);
+    if (this._scenesMap.has(id)) {
+      let value = this._scenesMap.get(id);
       if (typeof value === "function") {
-        const ctor: SceneObjectConstructor = this._sceneMap.get(id) as SceneObjectConstructor;
+        const ctor: SceneObjectConstructor = this._scenesMap.get(id) as SceneObjectConstructor;
         const scene: SceneObject = new ctor();
         value = scene;
       }
       if (value instanceof SceneBase) {
+        SceneController.init(this._gui, value);
         this.goto(value);
         this.saveScene();
       }
@@ -207,8 +221,8 @@ class SceneObjectManager implements SceneObjectManagerInterface<typeof SceneBase
    * @returns {void}
    */
   private saveScene(): void {
-    if (this._sceneController) {
-      const data = this._sceneController.save();
+    if (this._scenesController) {
+      const data = this._scenesController.save();
       const json = JSON.stringify({ id: data });
       localStorage.setItem(CURRENT_SCENE_STORAGE, json);
     }
@@ -230,9 +244,9 @@ class SceneObjectManager implements SceneObjectManagerInterface<typeof SceneBase
     fps.name("show fps");
 
     if (Object.keys(this._scenes).length > 0) {
-      this._sceneController = this._gui.add(this._options, "scene", this._scenes);
-      this._sceneController.onChange(this.onSceneChange.bind(this));
-      this._sceneController.name("scene");
+      this._scenesController = this._gui.add(this._options, "scene", this._scenes);
+      this._scenesController.onChange(this.onSceneChange.bind(this));
+      this._scenesController.name("scene");
       this.loadScene();
     }
   }
@@ -250,8 +264,8 @@ class SceneObjectManager implements SceneObjectManagerInterface<typeof SceneBase
     for (let s of scenes.sort(sortRegistrations)) {
       let id: string = s.id ?? s.scene.name;
       let title: string = s.title ?? s.scene.name;
-      if (!this._sceneMap.has(id)) {
-        this._sceneMap.set(id, s.scene);
+      if (!this._scenesMap.has(id)) {
+        this._scenesMap.set(id, s.scene);
         this._scenes = Object.assign({}, this._scenes, { [title]: id });
       }
     }
