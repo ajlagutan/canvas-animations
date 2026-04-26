@@ -290,6 +290,7 @@ declare interface SceneObjectConstructor {
 
 declare interface SceneObject extends DrawableObject {
   readonly height: number;
+  readonly options: SceneOptionBase<any>;
   readonly width: number;
   create(): void;
   isBusy(): boolean;
@@ -307,9 +308,26 @@ declare interface SceneObjectManagerInterface<T> {
   runScene(scene: T): void;
 }
 
-declare type SceneObjectManagerOptions = { fps: boolean; scene: string };
+declare type SceneOptionBase<T> = T & { readonly __config?: SceneOptionConfiguration<T> & { readonly __title?: string } };
+declare type SceneOptionConfigurationNumericEntry = { readonly max?: number; readonly min?: number; readonly step?: number };
+declare type SceneOptionConfigurationStringType = "color" | "text" | "options";
+declare type SceneOptionConfigurationStringEntry = { readonly __options?: any; readonly __type?: SceneOptionConfigurationStringType };
+declare type SceneOptionConfigurationEntry<T> = (T extends number ? SceneOptionConfigurationNumericEntry : SceneOptionConfigurationStringEntry) & {
+  readonly default?: T;
+  readonly __name?: string;
+  onChange?: (value: T) => void;
+  onFinishChange?: (value: T) => void;
+};
+declare type SceneOptionConfiguration<T> = {
+  readonly [P in keyof T]?: T[P] extends object
+    ? Readonly<SceneOptionConfiguration<T[P]>> & { readonly __title?: string }
+    : Readonly<SceneOptionConfigurationEntry<T[P]>>;
+};
 
-declare type SceneObjectRegistration<T> = { scene: T; id?: string; title?: string };
+declare interface SceneOptionControllerInterface {
+  get(key: string): any;
+  init(gui: any, scene: SceneObject): void;
+}
 
 declare interface WindowGraphicsInterface {
   frameCount: number;
