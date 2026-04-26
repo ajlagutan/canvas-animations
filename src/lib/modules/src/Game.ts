@@ -1,5 +1,5 @@
-import { Graphics, Keyboard, Mouse } from "..";
-import { logger } from "../../utils";
+import { Graphics, Keyboard, Mouse } from "@lib/modules";
+import { logger } from "@lib/utils";
 /**
  * A class that handles the game loop logic.
  *

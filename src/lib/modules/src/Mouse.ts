@@ -1,5 +1,5 @@
-import { Graphics } from "..";
-import { logger } from "../../utils";
+import { Graphics } from "@lib/modules";
+import { logger } from "@lib/utils";
 /**
  * A global mouse mapping.
  *
