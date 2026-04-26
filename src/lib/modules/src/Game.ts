@@ -9,10 +9,9 @@ import { logger } from "../../utils";
  */
 class GameLoop implements GameLoop {
   private _accumulator: number;
-  private _nextScene: SceneObject | null;
-  private _previousScene: SceneObject | null;
+  private _nextScene?: SceneObject;
   private _stopped: boolean;
-  private _scene: SceneObject | null;
+  private _scene?: SceneObject;
   private _sceneStarted: boolean;
   private _time: number;
   /**
@@ -26,9 +25,8 @@ class GameLoop implements GameLoop {
   private constructor() {
     this._accumulator = 0;
     this._time = 0;
-    this._nextScene = null;
-    this._previousScene = null;
-    this._scene = null;
+    this._nextScene = undefined;
+    this._scene = undefined;
     this._sceneStarted = false;
     this._stopped = false;
   }
@@ -103,14 +101,13 @@ class GameLoop implements GameLoop {
     if (this.isSceneChanging() && !this.isCurrentSceneBusy()) {
       if (this._scene) {
         this._scene.terminate();
-        this._previousScene = this._scene;
         Graphics.transitionStart(15);
       }
       this._scene = this._nextScene;
       if (this._scene) {
         this._scene.create();
-        this._nextScene = null;
         this._sceneStarted = false;
+        delete this._nextScene;
       }
     }
   }
@@ -221,10 +218,6 @@ class GameLoop implements GameLoop {
    */
   private renderScene(): void {
     Graphics.clear();
-    if (Graphics.isTransitioning()) {
-      Graphics.renderTransition(this._previousScene, this._scene);
-      return;
-    }
     if (this._scene) {
       Graphics.render(this._scene);
     }

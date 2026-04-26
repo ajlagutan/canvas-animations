@@ -295,6 +295,7 @@ declare interface SceneObject extends DrawableObject {
   isBusy(): boolean;
   isReady(): boolean;
   resize(): void;
+  snapshot(): CanvasImageSource;
   start(): void;
   stop(): void;
   terminate(): void;
@@ -317,13 +318,13 @@ declare interface WindowGraphicsInterface {
   readonly width: number;
   clear(): void;
   init(): void;
-  isTransitioning(): boolean;
   render(...drawables: Array<DrawableObject>): void;
-  renderTransition(bg: DrawableObject | null, fg: DrawableObject | null): void;
   resize(width: number, height: number): void;
+  snapshot(): CanvasImageSource;
   tickEnd(): void;
   tickStart(): void;
   toggleFps(visible: boolean): void;
+  transitioning(): boolean;
   transitionStart(duration: number): void;
   update(): void;
 }

@@ -84,6 +84,18 @@ export abstract class SceneBase implements SceneObject {
    */
   public resize(): void {}
   /**
+   * Takes a snapshot of the scene's current state.
+   *
+   *
+   *
+   * @public
+   * @method
+   * @returns {CanvasImageSource} A snapshot of the scene.
+   */
+  public snapshot(): CanvasImageSource {
+    return Graphics.snapshot();
+  }
+  /**
    * Starts the scene execution.
    *
    *

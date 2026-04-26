@@ -1,5 +1,5 @@
 import "fpsmeter";
-import { logger } from "../../utils";
+import { logger, mathematics } from "@lib/utils";
 /**
  * A class that handles the graphics context functions.
  *
@@ -16,10 +16,9 @@ class WindowGraphics implements WindowGraphicsInterface {
   private _frameDelta: number = 1 / 60;
   private _frameRate: number = 60;
   private _height: number = 0;
-  private _lastGlobalAlphaBeforeTransition: number = -1;
+  private _transitionBackground?: CanvasImageSource;
   private _transitionDuration: number = 0;
-  private _transitionBackground: number = 0;
-  private _transitionForeground: number = 0;
+  private _transitionOpacity: number = 0;
   private _width: number = 0;
   /**
    * Creates a new {@link WindowGraphics} object instance.
@@ -159,18 +158,6 @@ class WindowGraphics implements WindowGraphicsInterface {
     }
   }
   /**
-   * Checks whether the graphics context is doing a transition.
-   *
-   *
-   *
-   * @public
-   * @method
-   * @returns {boolean} **`true`**, if the graphics context is currently doing a transition; otherwise, **`false`**.
-   */
-  public isTransitioning(): boolean {
-    return this._transitionDuration > 0;
-  }
-  /**
    * Renders a drawable objects to the graphics context.
    *
    *
@@ -183,39 +170,15 @@ class WindowGraphics implements WindowGraphicsInterface {
   public render(...drawables: Array<DrawableObject>): void {
     const context = this.canvas.getContext("2d");
     if (context) {
-      if (this._lastGlobalAlphaBeforeTransition !== -1) {
-        context.globalAlpha = this._lastGlobalAlphaBeforeTransition;
-        this._lastGlobalAlphaBeforeTransition = -1;
-      }
       for (let drawable of drawables) {
         drawable.render(context);
       }
-    }
-  }
-  /**
-   * Renders the transition of two drawable objects.
-   *
-   *
-   *
-   * @public
-   * @method
-   * @param {DrawableObject | null} bg The drawable object to be rendered in the background.
-   * @param {DrawableObject | null} fg The drawable object to be rendered in the foreground.
-   * @returns {void}
-   */
-  public renderTransition(bg: DrawableObject | null, fg: DrawableObject | null): void {
-    const context = this.canvas.getContext("2d");
-    if (this.isTransitioning() && context) {
-      context.save();
-      if (bg) {
-        context.globalAlpha = this._transitionBackground;
-        bg.render(context);
+      if (this.transitioning() && this._transitionBackground) {
+        context.save();
+        context.globalAlpha = this._transitionOpacity;
+        context.drawImage(this._transitionBackground, 0, 0, this.width, this.height);
+        context.restore();
       }
-      if (fg) {
-        context.globalAlpha = this._transitionForeground;
-        fg.render(context);
-      }
-      context.restore();
     }
   }
   /**
@@ -236,6 +199,23 @@ class WindowGraphics implements WindowGraphicsInterface {
     this.canvas.height = this._height;
     this.canvas.style.width = this._width + "px";
     this.canvas.style.height = this._height + "px";
+  }
+  /**
+   * Takes a snapshot of the graphics context.
+   *
+   *
+   *
+   * @public
+   * @method
+   * @returns {CanvasImageSource} A snapshot of the graphics context.
+   */
+  public snapshot(): CanvasImageSource {
+    let image = new OffscreenCanvas(this.width, this.height);
+    let context = image.getContext("2d");
+    if (context) {
+      context.drawImage(this._canvas, 0, 0, this._canvas.width, this._canvas.height);
+    }
+    return image;
   }
   /**
    * Ticks the FPS meter component.
@@ -288,6 +268,18 @@ class WindowGraphics implements WindowGraphicsInterface {
     }
   }
   /**
+   * Checks whether the graphics context is doing a transition.
+   *
+   *
+   *
+   * @public
+   * @method
+   * @returns {boolean} **`true`**, if the graphics context is currently doing a transition; otherwise, **`false`**.
+   */
+  public transitioning(): boolean {
+    return this._transitionDuration > 0;
+  }
+  /**
    * Starts the transition from drawable object to another.
    *
    *
@@ -298,14 +290,9 @@ class WindowGraphics implements WindowGraphicsInterface {
    * @returns {void}
    */
   public transitionStart(duration: number): void {
-    const context = this._canvas.getContext("2d");
-    if (context) {
-      this._lastGlobalAlphaBeforeTransition = context.globalAlpha;
-    }
+    this._transitionBackground = Graphics.snapshot();
     this._transitionDuration = duration;
-    this._transitionBackground = 1;
-    this._transitionForeground = 0;
-    console.log(this._lastGlobalAlphaBeforeTransition);
+    this._transitionOpacity = 1;
   }
   /**
    * Updates the graphics context.
@@ -319,9 +306,11 @@ class WindowGraphics implements WindowGraphicsInterface {
   public update(): void {
     if (this._transitionDuration > 0) {
       let duration = this._transitionDuration;
-      this._transitionBackground -= this._transitionBackground / duration;
-      this._transitionForeground += (1 - this._transitionForeground) / duration;
+      this._transitionOpacity = mathematics.decay(this._transitionOpacity, duration);
       this._transitionDuration--;
+      if (this._transitionDuration === 0) {
+        delete this._transitionBackground;
+      }
     }
     this._frameCount = this._frameCount + 1 * this._frameDelta;
   }
