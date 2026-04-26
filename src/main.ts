@@ -1,10 +1,21 @@
-import "./style.css";
+import "./scss/style.scss";
 
-import { Game } from "./_modules";
-import * as Scenes from "./_scenes";
+import * as app from "@app";
+import { SceneManager } from "@lib";
 
-Game.run((manager) => {
-  manager.register(Scenes.Scene_Test, "57fe0d3ee1b34399b464053e459eb18d");
-  manager.register(Scenes.Scene_Particle, "841e5a91ffaf4432b3db034b520a2d52");
-  manager.register(Scenes.Scene_Particle2, "460e07675b054958b8bdcb57628b2c53");
-});
+SceneManager.run(
+  {
+    id: "801f682c058c486a84515d8c6ca335a0",
+    scene: app.SceneTest,
+    title: "test scene",
+  },
+  {
+    id: "d8a44ee98daa4fed9ba76b67e5849a7c",
+    scene: app.SceneParticle1,
+    title: "particle 1",
+  },
+  {
+    id: "76ece81397ee442aa2b07ee2ab76bb5a",
+    scene: app.SceneParticle2,
+  },
+);
